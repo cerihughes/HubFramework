@@ -345,44 +345,32 @@
 
     [layout computeForCollectionViewSize:self.collectionViewSize viewModel:viewModel diff:nil addHeaderMargin:YES];
 
-    NSUInteger const currentIndex = 25;
-    
-    __block CGFloat deletionHeight = 0.0;
-    __block CGFloat insertionHeight = 0.0;
-    
-    NSRange const removedRange = NSMakeRange(0, 12);
-    NSIndexSet * const removedIndices = [NSIndexSet indexSetWithIndexesInRange:removedRange];
+    // Currently, only index path 0-25 is on-screen
+    NSIndexPath * const topmostIndexPath = [NSIndexPath indexPathForItem:25 inSection:0];
+    collectionView.mockedIndexPathsForVisibleItems = @[topmostIndexPath];
 
-    NSRange const addedRange = NSMakeRange(0, 2);
-    NSIndexSet * const addedIndices = [NSIndexSet indexSetWithIndexesInRange:addedRange];
+    // Insert 2 items at start
+    CGFloat insertionHeight = 200.0;
+    for (NSUInteger i = 0; i < 2; i++) {
+        [self addBodyComponentWithIdentifier:self.fullWidthComponentIdentifier preferredIndex:i];
+    }
 
-    [addedIndices enumerateIndexesUsingBlock:^(NSUInteger idx, BOOL *stop) {
-        [self addBodyComponentWithIdentifier:self.fullWidthComponentIdentifier preferredIndex:idx];
-        if (idx < currentIndex) {
-            insertionHeight += self.fullWidthComponent.preferredViewSize.height;
-        }
-    }];
-
-    [removedIndices enumerateIndexesUsingBlock:^(NSUInteger idx, BOOL *stop) {
-        [self removeBodyComponentAtIndex:idx];
-        if (idx <= currentIndex) {
-            deletionHeight += self.fullWidthComponent.preferredViewSize.height;
-        }
-    }];
+    // Remove 1st 12 items
+    CGFloat deletionHeight = 1200.0;
+    for (NSUInteger i = 0; i < 12; i++) {
+        [self removeBodyComponentAtIndex:i];
+    }
 
     id<HUBViewModel> const newViewModel = [self.viewModelBuilder build];
     HUBViewModelDiff * const diff = [HUBViewModelDiff diffFromViewModel:viewModel toViewModel:newViewModel];
 
-    NSIndexPath * const topmostIndexPath = [NSIndexPath indexPathForItem:currentIndex inSection:0];
-    collectionView.mockedIndexPathsForVisibleItems = @[topmostIndexPath];
-    
     UICollectionViewLayoutAttributes * const topmostAttribute = [layout layoutAttributesForItemAtIndexPath:topmostIndexPath];
     CGPoint const contentOffset = CGPointMake(0.0, CGRectGetMinY(topmostAttribute.frame));
     collectionView.contentOffset = contentOffset;
 
     [layout computeForCollectionViewSize:self.collectionViewSize viewModel:newViewModel diff:diff addHeaderMargin:YES];
 
-    CGFloat expectedOffset = contentOffset.y - deletionHeight + insertionHeight;
+    CGFloat expectedOffset = contentOffset.y - deletionHeight + insertionHeight; // 1500
     
     HUBAssertEqualFloatValues([layout targetContentOffsetForProposedContentOffset:contentOffset].y, expectedOffset);
 }

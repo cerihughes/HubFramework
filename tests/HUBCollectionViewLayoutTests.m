@@ -382,21 +382,23 @@
 
     id<HUBViewModel> const firstViewModel = [self.viewModelBuilder build];
     [self.layout computeForCollectionViewSize:self.collectionViewSize viewModel:firstViewModel diff:nil addHeaderMargin:YES];
-    
+
+    // Create 10 components, each of height 100
     for (NSUInteger i = 0; i < 10; i++) {
         [self addBodyComponentWithIdentifier:self.fullWidthComponentIdentifier preferredIndex:i];
     }
 
     id<HUBViewModel> const secondViewModel = [self.viewModelBuilder build];
     HUBViewModelDiff * const firstDiff = [HUBViewModelDiff diffFromViewModel:firstViewModel toViewModel:secondViewModel];
-    
+
     collectionView.mockedIndexPathsForVisibleItems = @[[NSIndexPath indexPathForItem:9 inSection:0]];
     collectionView.contentOffset = CGPointMake(0.0, 400.0);
     [self.layout computeForCollectionViewSize:self.collectionViewSize viewModel:secondViewModel diff:firstDiff addHeaderMargin:YES];
 
-    CGFloat expectedOffset = self.layout.collectionViewContentSize.height + collectionView.contentInset.bottom - self.collectionViewSize.height;
+    CGFloat expectedOffset = 634; // Content size is 1000; collection view height is 400; bottom inset is 34.
     HUBAssertEqualFloatValues([self.layout targetContentOffsetForProposedContentOffset:collectionView.contentOffset].y, expectedOffset);
-    
+
+    // Remove all 10 components
     for (NSUInteger i = 0; i < 10; i++) {
         [self removeBodyComponentAtIndex:i];
     }
@@ -408,7 +410,7 @@
     collectionView.contentOffset = CGPointZero;
     [self.layout computeForCollectionViewSize:self.collectionViewSize viewModel:newViewModel diff:secondDiff addHeaderMargin:YES];
 
-    expectedOffset = -collectionView.contentInset.top;
+    expectedOffset = -27; // Top inset is 27
     HUBAssertEqualFloatValues([self.layout targetContentOffsetForProposedContentOffset:collectionView.contentOffset].y, expectedOffset);
 }
 

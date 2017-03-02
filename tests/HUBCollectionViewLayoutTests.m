@@ -347,18 +347,19 @@
 
     [self.layout computeForCollectionViewSize:self.collectionViewSize viewModel:viewModel diff:nil addHeaderMargin:YES];
 
-    // Currently, only index path 0-25 is on-screen
+    // Currently, assume only index path 0-25 is on screen, and it's at the top (offset = 2500)
     NSIndexPath * const topmostIndexPath = [NSIndexPath indexPathForItem:25 inSection:0];
     collectionView.mockedIndexPathsForVisibleItems = @[topmostIndexPath];
 
+    CGPoint const contentOffset = CGPointMake(0.0, 2500.0);
+    collectionView.contentOffset = contentOffset;
+
     // Insert 2 items at start
-    CGFloat insertionHeight = 200.0;
     for (NSUInteger i = 0; i < 2; i++) {
         [self addBodyComponentWithIdentifier:self.fullWidthComponentIdentifier preferredIndex:i];
     }
 
     // Remove 1st 12 items
-    CGFloat deletionHeight = 1200.0;
     for (NSUInteger i = 0; i < 12; i++) {
         [self removeBodyComponentAtIndex:i];
     }
@@ -366,15 +367,10 @@
     id<HUBViewModel> const newViewModel = [self.viewModelBuilder build];
     HUBViewModelDiff * const diff = [HUBViewModelDiff diffFromViewModel:viewModel toViewModel:newViewModel];
 
-    UICollectionViewLayoutAttributes * const topmostAttribute = [self.layout layoutAttributesForItemAtIndexPath:topmostIndexPath];
-    CGPoint const contentOffset = CGPointMake(0.0, CGRectGetMinY(topmostAttribute.frame));
-    collectionView.contentOffset = contentOffset;
-
     [self.layout computeForCollectionViewSize:self.collectionViewSize viewModel:newViewModel diff:diff addHeaderMargin:YES];
 
-    CGFloat expectedOffset = contentOffset.y - deletionHeight + insertionHeight; // 1500
-    
-    HUBAssertEqualFloatValues([self.layout targetContentOffsetForProposedContentOffset:contentOffset].y, expectedOffset);
+    // With 10 less items (+2 - 12), the offset should now be 1500
+    HUBAssertEqualFloatValues([self.layout targetContentOffsetForProposedContentOffset:contentOffset].y, 1500);
 }
 
 - (void)testProposedContentOffsetBeyondBounds

@@ -284,18 +284,6 @@ NS_ASSUME_NONNULL_BEGIN
     return newComponent;
 }
 
-- (void)forEachVerticalGroupInRect:(CGRect)rect runBlock:(void(^)(NSInteger groupIndex))block
-{
-    CGFloat const verticalGroupSize = 100;
-    NSInteger const maxVerticalGroup = (NSInteger)(floor(CGRectGetMaxY(rect) / verticalGroupSize));
-    NSInteger currentVerticalGroup = (NSInteger)(floor(CGRectGetMinY(rect) / verticalGroupSize));
-    
-    while (currentVerticalGroup <= maxVerticalGroup) {
-        block(currentVerticalGroup);
-        currentVerticalGroup++;
-    }
-}
-
 - (UIEdgeInsets)defaultMarginsForComponent:(id<HUBComponent>)component
                                 isInTopRow:(BOOL)componentIsInTopRow
                     componentsOnCurrentRow:(NSArray<id<HUBComponent>> *)componentsOnCurrentRow

@@ -39,7 +39,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong, readonly) id<HUBComponentLayoutManager> componentLayoutManager;
 @property (nonatomic, strong, readonly) NSMutableDictionary<HUBIdentifier *, id<HUBComponent>> *componentCache;
 @property (nonatomic, strong, readonly) NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *layoutAttributesByIndexPath;
-@property (nonatomic, strong, readonly) NSMutableDictionary<NSNumber *, NSMutableSet<NSIndexPath *> *> *indexPathsByVerticalGroup;
 @property (nonatomic, strong, nullable) NSMutableDictionary<NSIndexPath *, UICollectionViewLayoutAttributes *> *previousLayoutAttributesByIndexPath;
 @property (nonatomic, strong, nullable) HUBViewModelDiff *lastViewModelDiff;
 
@@ -59,7 +58,6 @@ NS_ASSUME_NONNULL_BEGIN
         _componentLayoutManager = componentLayoutManager;
         _componentCache = [NSMutableDictionary new];
         _layoutAttributesByIndexPath = [NSMutableDictionary new];
-        _indexPathsByVerticalGroup = [NSMutableDictionary new];
     }
     
     return self;
@@ -75,7 +73,6 @@ NS_ASSUME_NONNULL_BEGIN
     self.previousLayoutAttributesByIndexPath = [self.layoutAttributesByIndexPath copy];
 
     [self.layoutAttributesByIndexPath removeAllObjects];
-    [self.indexPathsByVerticalGroup removeAllObjects];
     
     BOOL componentIsInTopRow = YES;
     NSMutableArray<id<HUBComponent>> * const componentsOnCurrentRow = [NSMutableArray new];
@@ -370,18 +367,6 @@ NS_ASSUME_NONNULL_BEGIN
     UICollectionViewLayoutAttributes * const layoutAttributes = [UICollectionViewLayoutAttributes layoutAttributesForCellWithIndexPath:indexPath];
     layoutAttributes.frame = componentViewFrame;
     self.layoutAttributesByIndexPath[indexPath] = layoutAttributes;
-    
-    [self forEachVerticalGroupInRect:componentViewFrame runBlock:^(NSInteger groupIndex) {
-        NSNumber * const encodedGroupIndex = @(groupIndex);
-        NSMutableSet<NSIndexPath *> *indexPathsInGroup = self.indexPathsByVerticalGroup[encodedGroupIndex];
-        
-        if (indexPathsInGroup == nil) {
-            indexPathsInGroup = [NSMutableSet new];
-            self.indexPathsByVerticalGroup[encodedGroupIndex] = indexPathsInGroup;
-        }
-        
-        [indexPathsInGroup addObject:indexPath];
-    }];
 }
 
 - (CGSize)contentSizeForContentHeight:(CGFloat)contentHeight

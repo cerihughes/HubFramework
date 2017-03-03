@@ -80,9 +80,7 @@ NS_ASSUME_NONNULL_BEGIN
     CGPoint currentPoint = CGPointZero;
     CGPoint firstComponentOnCurrentRowOrigin = CGPointZero;
     NSUInteger const allComponentsCount = viewModel.bodyComponentModels.count;
-    CGFloat maxBottomRowComponentHeight = 0;
-    CGFloat maxBottomRowHeightWithMargins = 0;
-    
+
     for (NSUInteger componentIndex = 0; componentIndex < allComponentsCount; componentIndex++) {
         id<HUBComponentModel> const componentModel = viewModel.bodyComponentModels[componentIndex];
         id<HUBComponent> const component = [self componentForModel:componentModel];
@@ -164,7 +162,6 @@ NS_ASSUME_NONNULL_BEGIN
 
     self.contentSize = [self contentSizeForContentHeight:currentRowMaxY
                                      bottomRowComponents:componentsOnCurrentRow
-                                     minimumBottomMargin:maxBottomRowHeightWithMargins - maxBottomRowComponentHeight
                                       collectionViewSize:collectionViewSize];
 }
 
@@ -371,7 +368,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (CGSize)contentSizeForContentHeight:(CGFloat)contentHeight
                   bottomRowComponents:(NSArray<id<HUBComponent>> *)bottomRowComponents
-                  minimumBottomMargin:(CGFloat)minimumBottomMargin
                    collectionViewSize:(CGSize)collectionViewSize
 {
     CGFloat viewBottomMargin = 0;
@@ -383,7 +379,7 @@ NS_ASSUME_NONNULL_BEGIN
         viewBottomMargin = MAX(viewBottomMargin, componentBottomMargin);
     }
     
-    contentHeight += MAX(viewBottomMargin, minimumBottomMargin);
+    contentHeight += viewBottomMargin;
     
     return CGSizeMake(collectionViewSize.width, contentHeight);
 }

@@ -242,7 +242,7 @@ NS_ASSUME_NONNULL_BEGIN
 
     for (UICollectionViewLayoutAttributes *attributes in self.layoutAttributesByIndexPath.allValues) {
         if (CGRectIntersectsRect(rect, attributes.frame)) {
-                [layoutAttributes addObject:attributes];
+            [layoutAttributes addObject:attributes];
         }
     }
 

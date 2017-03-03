@@ -35,7 +35,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface HUBCollectionViewLayout () <HUBComponentChildDelegate>
 
-@property (nonatomic, strong, nullable) id<HUBViewModel> viewModel;
 @property (nonatomic, strong, readonly) id<HUBComponentRegistry> componentRegistry;
 @property (nonatomic, strong, readonly) id<HUBComponentLayoutManager> componentLayoutManager;
 @property (nonatomic, strong, readonly) NSMutableDictionary<HUBIdentifier *, id<HUBComponent>> *componentCache;
@@ -72,7 +71,6 @@ NS_ASSUME_NONNULL_BEGIN
                      addHeaderMargin:(BOOL)addHeaderMargin
 {
     self.lastViewModelDiff = diff;
-    self.viewModel = viewModel;
 
     self.previousLayoutAttributesByIndexPath = [self.layoutAttributesByIndexPath copy];
 
@@ -84,12 +82,12 @@ NS_ASSUME_NONNULL_BEGIN
     CGFloat currentRowMaxY = 0;
     CGPoint currentPoint = CGPointZero;
     CGPoint firstComponentOnCurrentRowOrigin = CGPointZero;
-    NSUInteger const allComponentsCount = self.viewModel.bodyComponentModels.count;
+    NSUInteger const allComponentsCount = viewModel.bodyComponentModels.count;
     CGFloat maxBottomRowComponentHeight = 0;
     CGFloat maxBottomRowHeightWithMargins = 0;
     
     for (NSUInteger componentIndex = 0; componentIndex < allComponentsCount; componentIndex++) {
-        id<HUBComponentModel> const componentModel = self.viewModel.bodyComponentModels[componentIndex];
+        id<HUBComponentModel> const componentModel = viewModel.bodyComponentModels[componentIndex];
         id<HUBComponent> const component = [self componentForModel:componentModel];
         NSSet<HUBComponentLayoutTrait> * const componentLayoutTraits = component.layoutTraits;
         BOOL isLastComponent = (componentIndex == allComponentsCount - 1);
@@ -102,6 +100,7 @@ NS_ASSUME_NONNULL_BEGIN
         UIEdgeInsets margins = [self defaultMarginsForComponent:component
                                                      isInTopRow:componentIsInTopRow
                                          componentsOnCurrentRow:componentsOnCurrentRow
+                                           headerComponentModel:viewModel.headerComponentModel
                                              collectionViewSize:collectionViewSize
                                                 addHeaderMargin:addHeaderMargin];
 
@@ -246,17 +245,13 @@ NS_ASSUME_NONNULL_BEGIN
 - (nullable NSArray<UICollectionViewLayoutAttributes *> *)layoutAttributesForElementsInRect:(CGRect)rect
 {
     NSMutableArray<UICollectionViewLayoutAttributes *> * const layoutAttributes = [NSMutableArray new];
-    
-    [self forEachVerticalGroupInRect:rect runBlock:^(NSInteger groupIndex) {
-        for (NSIndexPath * const indexPath in self.indexPathsByVerticalGroup[@(groupIndex)]) {
-            UICollectionViewLayoutAttributes * const layoutAttributesForIndexPath = [self layoutAttributesForItemAtIndexPath:indexPath];
 
-            if (layoutAttributesForIndexPath != nil) {
-                [layoutAttributes addObject:layoutAttributesForIndexPath];
-            }
+    for (UICollectionViewLayoutAttributes *attributes in self.layoutAttributesByIndexPath.allValues) {
+        if (CGRectIntersectsRect(rect, attributes.frame)) {
+                [layoutAttributes addObject:attributes];
         }
-    }];
-    
+    }
+
     return layoutAttributes;
 }
 
@@ -310,6 +305,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (UIEdgeInsets)defaultMarginsForComponent:(id<HUBComponent>)component
                                 isInTopRow:(BOOL)componentIsInTopRow
                     componentsOnCurrentRow:(NSArray<id<HUBComponent>> *)componentsOnCurrentRow
+                      headerComponentModel:(nullable id<HUBComponentModel>)headerComponentModel
                         collectionViewSize:(CGSize)collectionViewSize
                            addHeaderMargin:(BOOL)addHeaderMargin
 {
@@ -317,12 +313,11 @@ NS_ASSUME_NONNULL_BEGIN
     UIEdgeInsets margins = UIEdgeInsetsZero;
     
     if (componentIsInTopRow) {
-        id<HUBComponentModel> const headerComponentModel = self.viewModel.headerComponentModel;
-
         if (headerComponentModel != nil) {
             if (addHeaderMargin) {
-                id<HUBComponent> const headerComponent = [self componentForModel:headerComponentModel];
-                CGSize headerSize = [headerComponent preferredViewSizeForDisplayingModel:headerComponentModel containerViewSize:collectionViewSize];
+                id<HUBComponentModel> nonNullHeaderComponentModel = headerComponentModel;
+                id<HUBComponent> const headerComponent = [self componentForModel:nonNullHeaderComponentModel];
+                CGSize headerSize = [headerComponent preferredViewSizeForDisplayingModel:nonNullHeaderComponentModel containerViewSize:collectionViewSize];
                 margins.top = headerSize.height + [self.componentLayoutManager verticalMarginBetweenComponentWithLayoutTraits:componentLayoutTraits
                                                                                            andHeaderComponentWithLayoutTraits:headerComponent.layoutTraits];
             }

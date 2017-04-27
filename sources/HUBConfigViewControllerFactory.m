@@ -23,6 +23,7 @@
 
 #import "HUBFeatureInfoImplementation.h"
 #import "HUBViewModelLoaderImplementation.h"
+#import "HUBBackgroundQueueViewModelLoaderImplementation.h"
 #import "HUBConfig+Internal.h"
 #import "HUBViewModelRenderer.h"
 #import "HUBComponentReusePool.h"
@@ -56,6 +57,8 @@
                                                                                                        iconImageResolver:config.iconImageResolver
                                                                                                         initialViewModel:nil];
 
+    HUBBackgroundQueueViewModelLoaderImplementation * const backgroundViewModelLoader = [[HUBBackgroundQueueViewModelLoaderImplementation alloc] initWithDispatchQueue:dispatch_queue_create("HUBViewModelLoader", NULL)
+                                                                                                                                                       viewModelLoader:viewModelLoader];
 
     HUBViewModelRenderer * const viewModelRenderer = [HUBViewModelRenderer new];
     HUBCollectionViewFactory * const collectionViewFactory = [HUBCollectionViewFactory new];
@@ -71,7 +74,7 @@
 
     return [[HUBViewControllerImplementation alloc] initWithViewURI:viewURI
                                                         featureInfo:featureInfo
-                                                    viewModelLoader:viewModelLoader
+                                                    viewModelLoader:backgroundViewModelLoader
                                                   viewModelRenderer:viewModelRenderer
                                               collectionViewFactory:collectionViewFactory
                                                   componentRegistry:config.componentRegistry

@@ -22,6 +22,7 @@
 #import "HUBViewControllerFactoryImplementation.h"
 
 #import "HUBActionRegistryImplementation.h"
+#import "HUBBackgroundQueueViewModelLoaderImplementation.h"
 #import "HUBViewModelLoaderFactoryImplementation.h"
 #import "HUBFeatureRegistryImplementation.h"
 #import "HUBComponentRegistryImplementation.h"
@@ -199,6 +200,9 @@ NS_ASSUME_NONNULL_BEGIN
     HUBViewModelLoaderImplementation * const viewModelLoader = [self.viewModelLoaderFactory createViewModelLoaderForViewURI:viewURI
                                                                                                         featureRegistration:featureRegistration];
 
+    HUBBackgroundQueueViewModelLoaderImplementation * const backgroundViewModelLoader = [[HUBBackgroundQueueViewModelLoaderImplementation alloc] initWithDispatchQueue:dispatch_queue_create("HUBViewModelLoader", NULL)
+                                                                                                                                                       viewModelLoader:viewModelLoader];
+
     id<HUBImageLoader> const imageLoader = [self.imageLoaderFactory createImageLoader];
     HUBCollectionViewFactory * const collectionViewFactory = [HUBCollectionViewFactory new];
     HUBComponentReusePool * const componentReusePool = [[HUBComponentReusePool alloc] initWithComponentRegistry:self.componentRegistry];
@@ -213,7 +217,7 @@ NS_ASSUME_NONNULL_BEGIN
 
     return [[HUBViewControllerExperimentalImplementation alloc] initWithViewURI:viewURI
                                                                     featureInfo:featureInfo
-                                                                viewModelLoader:viewModelLoader
+                                                                viewModelLoader:backgroundViewModelLoader
                                                           collectionViewFactory:collectionViewFactory
                                                               componentRegistry:self.componentRegistry
                                                              componentReusePool:componentReusePool

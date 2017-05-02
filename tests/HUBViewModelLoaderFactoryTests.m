@@ -62,15 +62,17 @@
     HUBInitialViewModelRegistry * const initialViewModelRegistry = [HUBInitialViewModelRegistry new];
     id<HUBConnectivityStateResolver> const connectivityStateResolver = [HUBConnectivityStateResolverMock new];
     
-    self.viewModelLoaderFactory = [[HUBViewModelLoaderFactoryImplementation alloc] initWithFeatureRegistry:self.featureRegistry
-                                                                                        JSONSchemaRegistry:JSONSchemaRegistry
-                                                                                  initialViewModelRegistry:initialViewModelRegistry
-                                                                                         componentDefaults:componentDefaults
-                                                                                 connectivityStateResolver:connectivityStateResolver
-                                                                                         iconImageResolver:iconImageResolver
-                                                                          prependedContentOperationFactory:self.prependedContentOperationFactory
-                                                                           appendedContentOperationFactory:self.appendedContentOperationFactory
-                                                                                defaultContentReloadPolicy:nil];
+    self.viewModelLoaderFactory = [[HUBViewModelLoaderFactoryImplementation alloc] initWithContentOperationQueue:dispatch_get_main_queue()
+                                                                                                   delegateQueue:dispatch_get_main_queue()
+                                                                                                 featureRegistry:self.featureRegistry
+                                                                                              JSONSchemaRegistry:JSONSchemaRegistry
+                                                                                        initialViewModelRegistry:initialViewModelRegistry
+                                                                                               componentDefaults:componentDefaults
+                                                                                       connectivityStateResolver:connectivityStateResolver
+                                                                                               iconImageResolver:iconImageResolver
+                                                                                prependedContentOperationFactory:self.prependedContentOperationFactory
+                                                                                 appendedContentOperationFactory:self.appendedContentOperationFactory
+                                                                                      defaultContentReloadPolicy:nil];
 }
 
 - (void)tearDown

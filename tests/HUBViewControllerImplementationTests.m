@@ -145,15 +145,17 @@
     id<HUBJSONSchema> const JSONSchema = [[HUBJSONSchemaImplementation alloc] initWithComponentDefaults:componentDefaults iconImageResolver:iconImageResolver];
     id<HUBConnectivityStateResolver> const connectivityStateResolver = [HUBConnectivityStateResolverMock new];
     
-    self.viewModelLoader = [[HUBViewModelLoaderImplementation alloc] initWithViewURI:self.viewURI
-                                                                         featureInfo:self.featureInfo
-                                                                   contentOperations:@[self.contentOperation]
-                                                                 contentReloadPolicy:self.contentReloadPolicy
-                                                                          JSONSchema:JSONSchema
-                                                                   componentDefaults:componentDefaults
-                                                           connectivityStateResolver:connectivityStateResolver
-                                                                   iconImageResolver:iconImageResolver
-                                                                    initialViewModel:nil];
+    self.viewModelLoader = [[HUBViewModelLoaderImplementation alloc] initWithContentOperationQueue:dispatch_get_main_queue()
+                                                                                     delegateQueue:dispatch_get_main_queue()
+                                                                                           viewURI:self.viewURI
+                                                                                       featureInfo:self.featureInfo
+                                                                                 contentOperations:@[self.contentOperation]
+                                                                               contentReloadPolicy:self.contentReloadPolicy
+                                                                                        JSONSchema:JSONSchema
+                                                                                 componentDefaults:componentDefaults
+                                                                         connectivityStateResolver:connectivityStateResolver
+                                                                                 iconImageResolver:iconImageResolver
+                                                                                  initialViewModel:nil];
     
     self.viewModelRenderer = [HUBViewModelRenderer new];
     self.imageLoader = [HUBImageLoaderMock new];

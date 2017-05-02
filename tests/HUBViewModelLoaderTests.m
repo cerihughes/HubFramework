@@ -1047,15 +1047,17 @@
     HUBJSONSchemaImplementation * const JSONSchema = [[HUBJSONSchemaImplementation alloc] initWithComponentDefaults:componentDefaults
                                                                                                   iconImageResolver:iconImageResolver];
     
-    self.loader = [[HUBViewModelLoaderImplementation alloc] initWithViewURI:viewURI
-                                                                featureInfo:self.featureInfo
-                                                          contentOperations:contentOperations
-                                                        contentReloadPolicy:self.contentReloadPolicy
-                                                                 JSONSchema:JSONSchema
-                                                          componentDefaults:componentDefaults
-                                                  connectivityStateResolver:self.connectivityStateResolver
-                                                          iconImageResolver:iconImageResolver
-                                                           initialViewModel:initialViewModel];
+    self.loader = [[HUBViewModelLoaderImplementation alloc] initWithContentOperationQueue:dispatch_get_main_queue()
+                                                                            delegateQueue:dispatch_get_main_queue()
+                                                                                  viewURI:viewURI
+                                                                              featureInfo:self.featureInfo
+                                                                        contentOperations:contentOperations
+                                                                      contentReloadPolicy:self.contentReloadPolicy
+                                                                               JSONSchema:JSONSchema
+                                                                        componentDefaults:componentDefaults
+                                                                connectivityStateResolver:self.connectivityStateResolver
+                                                                        iconImageResolver:iconImageResolver
+                                                                         initialViewModel:initialViewModel];
     
     self.loader.delegate = self;
 }

@@ -34,6 +34,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface HUBViewModelLoaderFactoryImplementation ()
 
+@property (nonatomic, strong, readonly) dispatch_queue_t contentOperationQueue;
+@property (nonatomic, strong, readonly) dispatch_queue_t delegateQueue;
 @property (nonatomic, strong, readonly) HUBFeatureRegistryImplementation *featureRegistry;
 @property (nonatomic, strong, readonly) HUBJSONSchemaRegistryImplementation *JSONSchemaRegistry;
 @property (nonatomic, strong, readonly) HUBInitialViewModelRegistry *initialViewModelRegistry;
@@ -48,15 +50,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation HUBViewModelLoaderFactoryImplementation
 
-- (instancetype)initWithFeatureRegistry:(HUBFeatureRegistryImplementation *)featureRegistry
-                     JSONSchemaRegistry:(HUBJSONSchemaRegistryImplementation *)JSONSchemaRegistry
-               initialViewModelRegistry:(HUBInitialViewModelRegistry *)initialViewModelRegistry
-                      componentDefaults:(HUBComponentDefaults *)componentDefaults
-              connectivityStateResolver:(id<HUBConnectivityStateResolver>)connectivityStateResolver
-                      iconImageResolver:(nullable id<HUBIconImageResolver>)iconImageResolver
-       prependedContentOperationFactory:(nullable id<HUBContentOperationFactory>)prependedContentOperationFactory
-        appendedContentOperationFactory:(nullable id<HUBContentOperationFactory>)appendedContentOperationFactory
-             defaultContentReloadPolicy:(nullable id<HUBContentReloadPolicy>)defaultContentReloadPolicy
+- (instancetype)initWithContentOperationQueue:(dispatch_queue_t)contentOperationQueue
+                                delegateQueue:(dispatch_queue_t)delegateQueue
+                              featureRegistry:(HUBFeatureRegistryImplementation *)featureRegistry
+                           JSONSchemaRegistry:(HUBJSONSchemaRegistryImplementation *)JSONSchemaRegistry
+                     initialViewModelRegistry:(HUBInitialViewModelRegistry *)initialViewModelRegistry
+                            componentDefaults:(HUBComponentDefaults *)componentDefaults
+                    connectivityStateResolver:(id<HUBConnectivityStateResolver>)connectivityStateResolver
+                            iconImageResolver:(nullable id<HUBIconImageResolver>)iconImageResolver
+             prependedContentOperationFactory:(nullable id<HUBContentOperationFactory>)prependedContentOperationFactory
+              appendedContentOperationFactory:(nullable id<HUBContentOperationFactory>)appendedContentOperationFactory
+                   defaultContentReloadPolicy:(nullable id<HUBContentReloadPolicy>)defaultContentReloadPolicy
 {
     NSParameterAssert(featureRegistry != nil);
     NSParameterAssert(JSONSchemaRegistry != nil);
@@ -67,6 +71,8 @@ NS_ASSUME_NONNULL_BEGIN
     self = [super init];
     
     if (self) {
+        _contentOperationQueue = contentOperationQueue;
+        _delegateQueue = delegateQueue;
         _featureRegistry = featureRegistry;
         _JSONSchemaRegistry = JSONSchemaRegistry;
         _initialViewModelRegistry = initialViewModelRegistry;
@@ -116,16 +122,21 @@ NS_ASSUME_NONNULL_BEGIN
     id<HUBContentReloadPolicy> const contentReloadPolicy = featureRegistration.contentReloadPolicy ?: self.defaultContentReloadPolicy;
     id<HUBJSONSchema> const JSONSchema = [self JSONSchemaForFeatureWithRegistration:featureRegistration];
     id<HUBViewModel> const initialViewModel = [self.initialViewModelRegistry initialViewModelForViewURI:viewURI];
-    
-    return [[HUBViewModelLoaderImplementation alloc] initWithViewURI:viewURI
-                                                         featureInfo:featureInfo
-                                                   contentOperations:allContentOperations
-                                                 contentReloadPolicy:contentReloadPolicy
-                                                          JSONSchema:JSONSchema
-                                                   componentDefaults:self.componentDefaults
-                                           connectivityStateResolver:self.connectivityStateResolver
-                                                   iconImageResolver:self.iconImageResolver
-                                                    initialViewModel:initialViewModel];
+
+    BOOL useBackgroundQueue = [featureRegistration.options[@"HUBViewModelLoader"] isEqualToString:@"v2"] || YES; // TODO : Remove debug
+    dispatch_queue_t contentOperationQueue = useBackgroundQueue ? self.contentOperationQueue : self.delegateQueue;
+
+    return [[HUBViewModelLoaderImplementation alloc] initWithContentOperationQueue:contentOperationQueue
+                                                                     delegateQueue:self.delegateQueue
+                                                                           viewURI:viewURI
+                                                                       featureInfo:featureInfo
+                                                                 contentOperations:allContentOperations
+                                                               contentReloadPolicy:contentReloadPolicy
+                                                                        JSONSchema:JSONSchema
+                                                                 componentDefaults:self.componentDefaults
+                                                         connectivityStateResolver:self.connectivityStateResolver
+                                                                 iconImageResolver:self.iconImageResolver
+                                                                  initialViewModel:initialViewModel];
 }
 
 #pragma mark - HUBViewModelLoaderFactory

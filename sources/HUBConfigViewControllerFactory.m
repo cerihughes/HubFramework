@@ -23,7 +23,6 @@
 
 #import "HUBFeatureInfoImplementation.h"
 #import "HUBViewModelLoaderImplementation.h"
-#import "HUBBackgroundQueueViewModelLoaderImplementation.h"
 #import "HUBConfig+Internal.h"
 #import "HUBViewModelRenderer.h"
 #import "HUBComponentReusePool.h"
@@ -34,8 +33,24 @@
 #import "HUBImageLoaderFactory.h"
 #import "HUBViewControllerImplementation.h"
 
+@interface HUBConfigViewControllerFactory ()
+
+@property (nonatomic, strong, readonly) dispatch_queue_t contentOperationQueue;
+@property (nonatomic, strong, readonly) dispatch_queue_t delegateQueue;
+
+@end
 
 @implementation HUBConfigViewControllerFactory
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        _contentOperationQueue = dispatch_queue_create("HUBViewModelLoader", NULL);
+        _delegateQueue = dispatch_get_main_queue();
+    }
+    return self;
+}
 
 - (HUBViewController *)createViewControllerWithConfig:(HUBConfig *)config
                                     contentOperations:(NSArray<id<HUBContentOperation>> *)contentOperations
@@ -47,18 +62,17 @@
     id<HUBFeatureInfo> const featureInfo = [[HUBFeatureInfoImplementation alloc] initWithIdentifier:featureIdentifier
                                                                                               title:featureTitle];
 
-    HUBViewModelLoaderImplementation * const viewModelLoader = [[HUBViewModelLoaderImplementation alloc] initWithViewURI:viewURI
-                                                                                                             featureInfo:featureInfo
-                                                                                                       contentOperations:contentOperations
-                                                                                                     contentReloadPolicy:config.contentReloadPolicy
-                                                                                                              JSONSchema:config.jsonSchema
-                                                                                                       componentDefaults:config.componentDefaults
-                                                                                               connectivityStateResolver:config.connectivityStateResolver
-                                                                                                       iconImageResolver:config.iconImageResolver
-                                                                                                        initialViewModel:nil];
-
-    HUBBackgroundQueueViewModelLoaderImplementation * const backgroundViewModelLoader = [[HUBBackgroundQueueViewModelLoaderImplementation alloc] initWithDispatchQueue:dispatch_queue_create("HUBViewModelLoader", NULL)
-                                                                                                                                                       viewModelLoader:viewModelLoader];
+    HUBViewModelLoaderImplementation * const viewModelLoader = [[HUBViewModelLoaderImplementation alloc] initWithContentOperationQueue:self.contentOperationQueue
+                                                                                                                         delegateQueue:self.delegateQueue
+                                                                                                                               viewURI:viewURI
+                                                                                                                           featureInfo:featureInfo
+                                                                                                                     contentOperations:contentOperations
+                                                                                                                   contentReloadPolicy:config.contentReloadPolicy
+                                                                                                                            JSONSchema:config.jsonSchema
+                                                                                                                     componentDefaults:config.componentDefaults
+                                                                                                             connectivityStateResolver:config.connectivityStateResolver
+                                                                                                                     iconImageResolver:config.iconImageResolver
+                                                                                                                      initialViewModel:nil];
 
     HUBViewModelRenderer * const viewModelRenderer = [HUBViewModelRenderer new];
     HUBCollectionViewFactory * const collectionViewFactory = [HUBCollectionViewFactory new];
@@ -74,7 +88,7 @@
 
     return [[HUBViewControllerImplementation alloc] initWithViewURI:viewURI
                                                         featureInfo:featureInfo
-                                                    viewModelLoader:backgroundViewModelLoader
+                                                    viewModelLoader:viewModelLoader
                                                   viewModelRenderer:viewModelRenderer
                                               collectionViewFactory:collectionViewFactory
                                                   componentRegistry:config.componentRegistry

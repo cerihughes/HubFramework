@@ -40,11 +40,13 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface HUBViewModelLoaderImplementation () <HUBContentOperationWrapperDelegate, HUBConnectivityStateResolverObserver>
 
+@property (nonatomic, strong, readonly) dispatch_queue_t contentOperationQueue;
+@property (nonatomic, strong, readonly) dispatch_queue_t delegateQueue;
 @property (nonatomic, copy, readonly) NSURL *viewURI;
 @property (nonatomic, strong, readonly) id<HUBFeatureInfo> featureInfo;
 @property (nonatomic, copy, readonly) NSArray<id<HUBContentOperation>> *contentOperations;
 @property (nonatomic, strong, readonly) NSMutableDictionary<NSNumber *, HUBContentOperationWrapper *> *contentOperationWrappers;
-@property (nonatomic, strong, readonly) NSMutableArray<HUBContentOperationExecutionInfo *> *contentOperationQueue;
+@property (nonatomic, strong, readonly) NSMutableArray<HUBContentOperationExecutionInfo *> *contentOperationExecutionInfos;
 @property (nonatomic, strong, nullable, readonly) id<HUBContentReloadPolicy> contentReloadPolicy;
 @property (nonatomic, strong, readonly) id<HUBJSONSchema> JSONSchema;
 @property (nonatomic, strong, readonly) HUBComponentDefaults *componentDefaults;
@@ -68,15 +70,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 #pragma mark - Lifecycle
 
-- (instancetype)initWithViewURI:(NSURL *)viewURI
-                    featureInfo:(id<HUBFeatureInfo>)featureInfo
-              contentOperations:(NSArray<id<HUBContentOperation>> *)contentOperations
-            contentReloadPolicy:(nullable id<HUBContentReloadPolicy>)contentReloadPolicy
-                     JSONSchema:(id<HUBJSONSchema>)JSONSchema
-              componentDefaults:(HUBComponentDefaults *)componentDefaults
-      connectivityStateResolver:(id<HUBConnectivityStateResolver>)connectivityStateResolver
-              iconImageResolver:(nullable id<HUBIconImageResolver>)iconImageResolver
-               initialViewModel:(nullable id<HUBViewModel>)initialViewModel
+- (instancetype)initWithContentOperationQueue:(dispatch_queue_t)contentOperationQueue
+                                delegateQueue:(dispatch_queue_t)delegateQueue
+                                      viewURI:(NSURL *)viewURI
+                                  featureInfo:(id<HUBFeatureInfo>)featureInfo
+                            contentOperations:(NSArray<id<HUBContentOperation>> *)contentOperations
+                          contentReloadPolicy:(nullable id<HUBContentReloadPolicy>)contentReloadPolicy
+                                   JSONSchema:(id<HUBJSONSchema>)JSONSchema
+                            componentDefaults:(HUBComponentDefaults *)componentDefaults
+                    connectivityStateResolver:(id<HUBConnectivityStateResolver>)connectivityStateResolver
+                            iconImageResolver:(nullable id<HUBIconImageResolver>)iconImageResolver
+                             initialViewModel:(nullable id<HUBViewModel>)initialViewModel
 {
     NSParameterAssert(viewURI != nil);
     NSParameterAssert(featureInfo != nil);
@@ -88,11 +92,13 @@ NS_ASSUME_NONNULL_BEGIN
     self = [super init];
     
     if (self) {
+        _contentOperationQueue = contentOperationQueue;
+        _delegateQueue = delegateQueue;
         _viewURI = [viewURI copy];
         _featureInfo = featureInfo;
         _contentOperations = [contentOperations copy];
         _contentOperationWrappers = [NSMutableDictionary new];
-        _contentOperationQueue = [NSMutableArray new];
+        _contentOperationExecutionInfos = [NSMutableArray new];
         _contentReloadPolicy = contentReloadPolicy;
         _JSONSchema = JSONSchema;
         _componentDefaults = componentDefaults;
@@ -112,7 +118,7 @@ NS_ASSUME_NONNULL_BEGIN
     [_connectivityStateResolver removeObserver:self];
 }
 
-#pragma mark - Public API
+#pragma mark - HUBViewModelLoaderWithActions
 
 - (void)actionPerformedWithContext:(id<HUBActionContext>)context
 {
@@ -126,8 +132,6 @@ NS_ASSUME_NONNULL_BEGIN
                                                                    connectivityState:self.connectivityState];
     }
 }
-
-#pragma mark - Accessor overrides
 
 - (void)setActionPerformer:(nullable id<HUBActionPerformer>)actionPerformer
 {
@@ -171,10 +175,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (BOOL)isLoading
 {
-    return self.contentOperationQueue.count > 0;
+    return self.contentOperationExecutionInfos.count > 0;
 }
 
 - (void)loadViewModel
+{
+    dispatch_async(self.contentOperationQueue, ^{
+        [self loadViewModelOnContentOperationQueue];
+    });
+}
+
+- (void)loadViewModelOnContentOperationQueue
 {
     [self connectivityStateResolverStateDidChange:self.connectivityStateResolver];
     [self.connectivityStateResolver addObserver:self];
@@ -194,11 +205,25 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)reloadViewModel
 {
+    dispatch_async(self.contentOperationQueue, ^{
+        [self reloadViewModelOnContentOperationQueue];
+    });
+}
+
+- (void)reloadViewModelOnContentOperationQueue
+{
     // Ignore reload policy and always reload
     [self scheduleContentOperationsFromIndex:0 executionMode:HUBContentOperationExecutionModeMain];
 }
 
 - (void)loadNextPageForCurrentViewModel
+{
+    dispatch_async(self.contentOperationQueue, ^{
+        [self loadNextPageForCurrentViewModelOnContentOperationQueue];
+    });
+}
+
+- (void)loadNextPageForCurrentViewModelOnContentOperationQueue
 {
     if (self.previouslyLoadedViewModel == nil) {
         return;
@@ -215,21 +240,21 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)contentOperationWrapperDidFinish:(HUBContentOperationWrapper *)operationWrapper
 {
-    HUBPerformOnMainQueue(^{
+    dispatch_async(self.contentOperationQueue, ^{
         [self contentOperationWrapperDidFinish:operationWrapper withError:nil];
     });
 }
 
 - (void)contentOperationWrapper:(HUBContentOperationWrapper *)operationWrapper didFailWithError:(NSError *)error
 {
-    HUBPerformOnMainQueue(^{
+    dispatch_async(self.contentOperationQueue, ^{
         [self contentOperationWrapperDidFinish:operationWrapper withError:error];
     });
 }
 
 - (void)contentOperationWrapperDidFinish:(HUBContentOperationWrapper *)operationWrapper withError:(nullable NSError *)error
 {
-    [self.contentOperationQueue removeObjectAtIndex:0];
+    [self.contentOperationExecutionInfos removeObjectAtIndex:0];
     self.builderSnapshots[@(operationWrapper.index)] = [self.currentBuilder copy];
     self.errorSnapshots[@(operationWrapper.index)] = error;
     [self performFirstContentOperationInQueue];
@@ -237,7 +262,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)contentOperationWrapperRequiresRescheduling:(HUBContentOperationWrapper *)operationWrapper
 {
-    HUBPerformOnMainQueue(^{
+    dispatch_async(self.contentOperationQueue, ^{
         [self scheduleContentOperationsFromIndex:operationWrapper.index
                                    executionMode:HUBContentOperationExecutionModeMain];
     });
@@ -251,10 +276,14 @@ NS_ASSUME_NONNULL_BEGIN
     self.connectivityState = [self.connectivityStateResolver resolveConnectivityState];
     
     if (self.connectivityState != previousConnectivityState) {
-        [self.delegate viewModelLoader:self didLoadViewModel:self.initialViewModel];
+        dispatch_async(self.delegateQueue, ^{
+            [self.delegate viewModelLoader:self didLoadViewModel:self.initialViewModel];
+        });
         
-        [self scheduleContentOperationsFromIndex:0
-                                   executionMode:HUBContentOperationExecutionModeMain];
+        dispatch_async(self.contentOperationQueue, ^{
+            [self scheduleContentOperationsFromIndex:0
+                                       executionMode:HUBContentOperationExecutionModeMain];
+        });
     }
 }
 
@@ -334,8 +363,8 @@ NS_ASSUME_NONNULL_BEGIN
         operationIndex++;
     }
     
-    BOOL const shouldRestartQueue = (self.contentOperationQueue.count == 0);
-    [self.contentOperationQueue addObjectsFromArray:appendedQueue];
+    BOOL const shouldRestartQueue = (self.contentOperationExecutionInfos.count == 0);
+    [self.contentOperationExecutionInfos addObjectsFromArray:appendedQueue];
     
     if (shouldRestartQueue) {
         [self performFirstContentOperationInQueue];
@@ -344,12 +373,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)performFirstContentOperationInQueue
 {
-    if (self.contentOperationQueue.count == 0) {
-        [self contentOperationQueueDidBecomeEmpty];
+    if (self.contentOperationExecutionInfos.count == 0) {
+        [self contentOperationQueueDidBecomeEmptyOnContentOperationQueue];
         return;
     }
     
-    HUBContentOperationExecutionInfo * const executionInfo = self.contentOperationQueue[0];
+    HUBContentOperationExecutionInfo * const executionInfo = self.contentOperationExecutionInfos[0];
     HUBContentOperationWrapper * const operation = [self getOrCreateWrapperForContentOperationAtIndex:executionInfo.contentOperationIndex];
     HUBViewModelBuilderImplementation * const builder = [self builderForExecutionInfo:executionInfo];
     NSNumber * const pageIndex = [self pageIndexForExecutionInfo:executionInfo];
@@ -363,6 +392,13 @@ NS_ASSUME_NONNULL_BEGIN
                          viewModelBuilder:builder
                                 pageIndex:pageIndex
                             previousError:previousError];
+}
+
+- (void)contentOperationQueueDidBecomeEmptyOnContentOperationQueue
+{
+    dispatch_async(self.delegateQueue, ^{
+        [self contentOperationQueueDidBecomeEmpty];
+    });
 }
 
 - (void)contentOperationQueueDidBecomeEmpty

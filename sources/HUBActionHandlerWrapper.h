@@ -26,7 +26,7 @@
 @class HUBIdentifier;
 @class HUBActionRegistryImplementation;
 @class HUBInitialViewModelRegistry;
-@class HUBViewModelLoaderImplementation;
+@protocol HUBViewModelLoaderWithActions;
 @protocol HUBActionRegistry;
 
 NS_ASSUME_NONNULL_BEGIN
@@ -46,7 +46,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithActionHandler:(nullable id<HUBActionHandler>)actionHandler
                        actionRegistry:(id<HUBActionRegistry>)actionRegistry
              initialViewModelRegistry:(nullable HUBInitialViewModelRegistry *)initialViewModelRegistry
-                      viewModelLoader:(HUBViewModelLoaderImplementation *)viewModelLoader HUB_DESIGNATED_INITIALIZER;
+                      viewModelLoader:(id<HUBViewModelLoaderWithActions>)viewModelLoader HUB_DESIGNATED_INITIALIZER;
 
 @end
 

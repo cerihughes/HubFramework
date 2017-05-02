@@ -28,20 +28,9 @@
 @protocol HUBContentReloadPolicy;
 @protocol HUBConnectivityStateResolver;
 @protocol HUBIconImageResolver;
-@protocol HUBActionContext;
-@protocol HUBActionPerformer;
 @class HUBComponentDefaults;
 
 NS_ASSUME_NONNULL_BEGIN
-
-
-/// Protocol used for the internal `HUBViewModelLoaderImplementation` to support content operations sending actions
-@protocol HUBViewModelLoaderWithActions <HUBViewModelLoader>
-
-/// Any object that performs actions on behalf of this view model loader
-@property (nonatomic, weak, nullable) id<HUBActionPerformer> actionPerformer;
-
-@end
 
 /// Concrete implementation of the `HUBViewModelLoader` API
 @interface HUBViewModelLoaderImplementation : NSObject <HUBViewModelLoaderWithActions>
@@ -60,25 +49,17 @@ NS_ASSUME_NONNULL_BEGIN
  *  @param iconImageResolver The resolver to use to convert icons into renderable images
  *  @param initialViewModel Any pre-registered view model that the loader should include
  */
-- (instancetype)initWithViewURI:(NSURL *)viewURI
-                    featureInfo:(id<HUBFeatureInfo>)featureInfo
-              contentOperations:(NSArray<id<HUBContentOperation>> *)contentOperations
-            contentReloadPolicy:(nullable id<HUBContentReloadPolicy>)contentReloadPolicy
-                     JSONSchema:(id<HUBJSONSchema>)JSONSchema
-              componentDefaults:(HUBComponentDefaults *)componentDefaults
-      connectivityStateResolver:(id<HUBConnectivityStateResolver>)connectivityStateResolver
-              iconImageResolver:(nullable id<HUBIconImageResolver>)iconImageResolver
-               initialViewModel:(nullable id<HUBViewModel>)initialViewModel HUB_DESIGNATED_INITIALIZER;
-
-/**
- *  Notify the view model loader that an action was performed in the view that it is for
- *
- *  @param context The contextual object that the action was performed in
- *
- *  The view model loader uses this method to notify any action observing content operations
- *  that an action was performed.
- */
-- (void)actionPerformedWithContext:(id<HUBActionContext>)context;
+- (instancetype)initWithContentOperationQueue:(dispatch_queue_t)contentOperationQueue
+                                delegateQueue:(dispatch_queue_t)delegateQueue
+                                      viewURI:(NSURL *)viewURI
+                                  featureInfo:(id<HUBFeatureInfo>)featureInfo
+                            contentOperations:(NSArray<id<HUBContentOperation>> *)contentOperations
+                          contentReloadPolicy:(nullable id<HUBContentReloadPolicy>)contentReloadPolicy
+                                   JSONSchema:(id<HUBJSONSchema>)JSONSchema
+                            componentDefaults:(HUBComponentDefaults *)componentDefaults
+                    connectivityStateResolver:(id<HUBConnectivityStateResolver>)connectivityStateResolver
+                            iconImageResolver:(nullable id<HUBIconImageResolver>)iconImageResolver
+                             initialViewModel:(nullable id<HUBViewModel>)initialViewModel HUB_DESIGNATED_INITIALIZER;
 
 @end
 

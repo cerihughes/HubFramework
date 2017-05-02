@@ -40,6 +40,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface HUBManager ()
 
+@property (nonatomic, strong, readonly) dispatch_queue_t contentOperationQueue;
+@property (nonatomic, strong, readonly) dispatch_queue_t delegateQueue;
 @property (nonatomic, strong, readonly) id<HUBConnectivityStateResolver> connectivityStateResolver;
 @property (nonatomic, strong, readonly) HUBInitialViewModelRegistry *initialViewModelRegistry;
 @property (nonatomic, strong, readonly) HUBComponentRegistryImplementation *componentRegistryImplementation;
@@ -66,6 +68,9 @@ NS_ASSUME_NONNULL_BEGIN
     self = [super init];
     
     if (self) {
+        _contentOperationQueue = dispatch_queue_create("HUBViewModelLoader", NULL);
+        _delegateQueue = dispatch_get_main_queue();
+
         HUBComponentDefaults * const componentDefaults = [[HUBComponentDefaults alloc] initWithComponentNamespace:componentFallbackHandler.defaultComponentNamespace
                                                                                                     componentName:componentFallbackHandler.defaultComponentName
                                                                                                 componentCategory:componentFallbackHandler.defaultComponentCategory];
@@ -85,16 +90,18 @@ NS_ASSUME_NONNULL_BEGIN
                                                                                                                         JSONSchema:JSONSchemaRegistry.defaultSchema
                                                                                                                          iconImageResolver:iconImageResolver];
         
-        HUBViewModelLoaderFactoryImplementation * const viewModelLoaderFactory = [[HUBViewModelLoaderFactoryImplementation alloc] initWithFeatureRegistry:featureRegistry
-                                                                                                                                       JSONSchemaRegistry:JSONSchemaRegistry
-                                                                                                                                 initialViewModelRegistry:_initialViewModelRegistry
-                                                                                                                                        componentDefaults:componentDefaults
-                                                                                                                                connectivityStateResolver:_connectivityStateResolver
-                                                                                                                                        iconImageResolver:iconImageResolver
-                                                                                                                         prependedContentOperationFactory:prependedContentOperationFactory
-                                                                                                                          appendedContentOperationFactory:appendedContentOperationFactory
-                                                                                                                               defaultContentReloadPolicy:defaultContentReloadPolicy];
-        
+        HUBViewModelLoaderFactoryImplementation * const viewModelLoaderFactory = [[HUBViewModelLoaderFactoryImplementation alloc] initWithContentOperationQueue:self.contentOperationQueue
+                                                                                                                                                  delegateQueue:self.delegateQueue
+                                                                                                                                                featureRegistry:featureRegistry
+                                                                                                                                             JSONSchemaRegistry:JSONSchemaRegistry
+                                                                                                                                       initialViewModelRegistry:_initialViewModelRegistry
+                                                                                                                                              componentDefaults:componentDefaults
+                                                                                                                                      connectivityStateResolver:_connectivityStateResolver
+                                                                                                                                              iconImageResolver:iconImageResolver
+                                                                                                                               prependedContentOperationFactory:prependedContentOperationFactory
+                                                                                                                                appendedContentOperationFactory:appendedContentOperationFactory
+                                                                                                                                     defaultContentReloadPolicy:defaultContentReloadPolicy];
+
         HUBActionRegistryImplementation * const actionRegistry = [HUBActionRegistryImplementation registryWithDefaultSelectionAction];
         
         id<HUBImageLoaderFactory> const imageLoaderFactoryToUse = imageLoaderFactory ?: [HUBDefaultImageLoaderFactory new];

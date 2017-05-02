@@ -53,15 +53,17 @@ NS_ASSUME_NONNULL_BEGIN
  *         views' content loading chains.
  *  @param defaultContentReloadPolicy The default content reload policy used by features not defining their own
  */
-- (instancetype)initWithFeatureRegistry:(HUBFeatureRegistryImplementation *)featureRegistry
-                     JSONSchemaRegistry:(HUBJSONSchemaRegistryImplementation *)JSONSchemaRegistry
-               initialViewModelRegistry:(HUBInitialViewModelRegistry *)initialViewModelRegistry
-                      componentDefaults:(HUBComponentDefaults *)componentDefaults
-              connectivityStateResolver:(id<HUBConnectivityStateResolver>)connectivityStateResolver
-                      iconImageResolver:(nullable id<HUBIconImageResolver>)iconImageResolver
-       prependedContentOperationFactory:(nullable id<HUBContentOperationFactory>)prependedContentOperationFactory
-        appendedContentOperationFactory:(nullable id<HUBContentOperationFactory>)appendedContentOperationFactory
-             defaultContentReloadPolicy:(nullable id<HUBContentReloadPolicy>)defaultContentReloadPolicy HUB_DESIGNATED_INITIALIZER;
+- (instancetype)initWithContentOperationQueue:(dispatch_queue_t)contentOperationQueue
+                                delegateQueue:(dispatch_queue_t)delegateQueue
+                              featureRegistry:(HUBFeatureRegistryImplementation *)featureRegistry
+                           JSONSchemaRegistry:(HUBJSONSchemaRegistryImplementation *)JSONSchemaRegistry
+                     initialViewModelRegistry:(HUBInitialViewModelRegistry *)initialViewModelRegistry
+                            componentDefaults:(HUBComponentDefaults *)componentDefaults
+                    connectivityStateResolver:(id<HUBConnectivityStateResolver>)connectivityStateResolver
+                            iconImageResolver:(nullable id<HUBIconImageResolver>)iconImageResolver
+             prependedContentOperationFactory:(nullable id<HUBContentOperationFactory>)prependedContentOperationFactory
+              appendedContentOperationFactory:(nullable id<HUBContentOperationFactory>)appendedContentOperationFactory
+                   defaultContentReloadPolicy:(nullable id<HUBContentReloadPolicy>)defaultContentReloadPolicy HUB_DESIGNATED_INITIALIZER;
 
 /**
  *  Create a view model loader for a given view URI, using a feature registration

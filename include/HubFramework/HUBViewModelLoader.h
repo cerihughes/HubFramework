@@ -21,6 +21,8 @@
 
 #import <Foundation/Foundation.h>
 
+@protocol HUBActionContext;
+@protocol HUBActionPerformer;
 @protocol HUBViewModelLoader;
 @protocol HUBViewModel;
 
@@ -130,6 +132,24 @@ NS_ASSUME_NONNULL_BEGIN
  *  Calling this method before first loading a view model using `loadViewModel` does nothing.
  */
 - (void)loadNextPageForCurrentViewModel;
+
+@end
+
+/// Protocol used for the internal `HUBViewModelLoaderImplementation` to support content operations sending actions
+@protocol HUBViewModelLoaderWithActions <HUBViewModelLoader>
+
+/// Any object that performs actions on behalf of this view model loader
+@property (nonatomic, weak, nullable) id<HUBActionPerformer> actionPerformer;
+
+/**
+ *  Notify the view model loader that an action was performed in the view that it is for
+ *
+ *  @param context The contextual object that the action was performed in
+ *
+ *  The view model loader uses this method to notify any action observing content operations
+ *  that an action was performed.
+ */
+- (void)actionPerformedWithContext:(id<HUBActionContext>)context;
 
 @end
 
